@@ -1,27 +1,42 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { z } from 'zod';
 import axiosClient from '../utils/axiosClient';
 
-export default function Register() {
-  // State to store registration input
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+// Zod schema for validation
+const registerSchema = z.object({
+  name: z.string().min(3, 'Name is required'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters long'),
+});
 
+export default function Register() {
+  const [formData, setFormData] = useState({ name: '', email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [formError, setFormError] = useState('');
   const navigate = useNavigate();
 
-  // Handles register form submission
+  const handleChange = (e) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
   const handleRegister = async (e) => {
     e.preventDefault();
+    setFormError('');
+
+    const validation = registerSchema.safeParse(formData);
+
+    if (!validation.success) {
+      setFormError(validation.error.errors[0].message);
+      return;
+    }
 
     try {
-      // Send registration data to backend
-      await axiosClient.post('/auth/register', { name, email, password });
-
+      await axiosClient.post('/auth/register', formData);
       alert('Registration successful!');
-      navigate('/login'); // Redirect to login after success
+      navigate('/login');
     } catch (err) {
-      alert(err?.response?.data?.message || 'Registration failed');
+      setFormError(err?.response?.data?.message || 'Registration failed');
     }
   };
 
@@ -32,34 +47,50 @@ export default function Register() {
           Create Account 📝
         </h2>
 
-        {/* Register Form */}
+        {/* Error Message */}
+        {formError && (
+          <p className="text-red-600 text-sm mb-4 text-center">{formError}</p>
+        )}
+
         <form onSubmit={handleRegister} className="space-y-4">
           <input
             type="text"
+            name="name"
             placeholder="Full Name"
             className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={formData.name}
+            onChange={handleChange}
             required
           />
 
           <input
             type="email"
+            name="email"
             placeholder="Email Address"
             className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={formData.email}
+            onChange={handleChange}
             required
           />
 
-          <input
-            type="password"
-            placeholder="Password"
-            className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              placeholder="Password"
+              className="w-full border border-gray-300 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-2.5 text-sm text-blue-500 hover:underline"
+              onClick={() => setShowPassword((prev) => !prev)}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
 
           <button
             type="submit"
@@ -69,7 +100,6 @@ export default function Register() {
           </button>
         </form>
 
-        {/* Link to login */}
         <p className="text-center text-sm text-gray-600 mt-6">
           Already have an account?{' '}
           <Link to="/login" className="text-blue-600 hover:underline font-medium">
