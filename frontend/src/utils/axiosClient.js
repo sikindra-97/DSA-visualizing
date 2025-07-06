@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const axiosClient = axios.create({
-  baseURL: 'http://localhost:4000/api', // Make sure this matches your backend
+  baseURL: 'https://dsa-visualizing-3.onrender.com/api',
   headers: {
     'Content-Type': 'application/json',
   },
